@@ -3,3 +3,5 @@
 スクラムフェス神奈川2026のOSTで、テーブルトピックスをテストプレイするためのツールとして利用したhtmlです。
 
 htmlファイルをそのままブラウザで開くことで、オフラインでもテーブルトピックスを楽しむことができます。
+
+[テーブルトピックス](https://98lerr.github.io/table-topics-for-sf-kanagawa-2026/table-topics_sfkanagawa2026spring.html)

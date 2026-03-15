@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>テーブルトピックス | Scrum Fest Kanagawa</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d14;
+    --accent: #4fc3f7;
+    --card-bg: #161620;
+    --card-border: #2a2a35;
+  }
+
+  body {
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Noto Sans JP', sans-serif;
+    padding: 24px 16px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  .grid-bg {
+    position: fixed; inset: 0;
+    opacity: 0.04;
+    background-image:
+      linear-gradient(#fff 1px, transparent 1px),
+      linear-gradient(90deg, #fff 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .glow {
+    position: fixed;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    transition: background 0.6s;
+  }
+
+  .wrapper {
+    width: 100%; max-width: 600px;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .sub-label {
+    font-family: 'Space Mono', monospace;
+    color: #666;
+    font-size: 11px;
+    letter-spacing: 4px;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    color: #fff;
+    font-size: clamp(22px, 5vw, 32px);
+    font-weight: 900;
+    letter-spacing: -1px;
+  }
+
+  .counter {
+    color: #555;
+    font-size: 11px;
+    margin-top: 6px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* Card */
+  .card {
+    width: 100%;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 36px 28px;
+    transition: all 0.5s cubic-bezier(.4,0,.2,1);
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: 0 8px 32px #0008;
+  }
+
+  .card.revealed {
+    box-shadow: 0 0 60px var(--accent-glow), 0 8px 32px #0008;
+  }
+
+  .card.flipping {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #2a2a35;
+    border: 1px solid #333;
+    border-radius: 100px;
+    padding: 4px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #555;
+    margin-bottom: 20px;
+    align-self: flex-start;
+    transition: all 0.5s;
+  }
+
+  .card.revealed .badge {
+    background: var(--accent-light);
+    border-color: var(--accent-border);
+    color: var(--accent);
+  }
+
+  .hidden-state {
+    text-align: center;
+    padding: 20px 0;
+  }
+
+  .hidden-icon { font-size: 48px; margin-bottom: 12px; }
+
+  .hidden-hint {
+    color: #444;
+    font-size: 14px;
+  }
+
+  .topic-text {
+    color: #fff;
+    font-size: clamp(16px, 3.5vw, 20px);
+    line-height: 1.75;
+    font-weight: 700;
+    display: none;
+  }
+
+  .card.revealed .hidden-state { display: none; }
+  .card.revealed .topic-text { display: block; }
+
+  /* Timer */
+  .timer-wrap {
+    width: 100%;
+    margin-top: 14px;
+    display: none;
+  }
+
+  .timer-wrap.visible { display: block; }
+
+  .timer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .timer-status {
+    color: #888;
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .timer-display {
+    font-family: 'Space Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    transition: color 0.3s;
+  }
+
+  .timer-bar-bg {
+    height: 4px;
+    background: #1e1e2a;
+    border-radius: 100px;
+    overflow: hidden;
+  }
+
+  .timer-bar {
+    height: 100%;
+    border-radius: 100px;
+    background: var(--accent);
+    width: 100%;
+    transition: width 1s linear, background 0.3s;
+  }
+
+  .timer-btns {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .timer-btn {
+    flex: 1;
+    padding: 9px;
+    border-radius: 8px;
+    background: #1e1e2a;
+    border: 1px solid #333;
+    color: #aaa;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+    transition: background 0.2s;
+  }
+
+  .timer-btn:hover { background: #2a2a3a; }
+
+  /* Main buttons */
+  .btn-area {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    width: 100%;
+  }
+
+  .btn-reveal {
+    flex: 1;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    background: var(--accent);
+    color: #000;
+    font-size: 16px;
+    font-weight: 900;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 24px var(--accent-glow);
+    transition: transform 0.15s, box-shadow 0.15s;
+    font-family: 'Noto Sans JP', sans-serif;
+    display: block;
+  }
+
+  .btn-reveal:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px var(--accent-glow);
+  }
+
+  .btn-next {
+    flex: 1;
+    padding: 16px;
+    border-radius: 12px;
+    background: transparent;
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-family: 'Noto Sans JP', sans-serif;
+    display: none;
+  }
+
+  .btn-next:hover { background: var(--accent-light); }
+
+  .revealed-btns .btn-reveal { display: none; }
+  .revealed-btns .btn-next { display: block; }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 24px;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #161620;
+    border-radius: 100px;
+    padding: 3px 10px;
+    font-size: 11px;
+  }
+
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="glow" id="glow"></div>
+
+<div class="wrapper">
+  <header>
+    <div class="sub-label">SCRUM FEST KANAGAWA</div>
+    <h1>テーブルトピックス</h1>
+    <div class="counter" id="counter">1 / 25</div>
+  </header>
+
+  <div class="card" id="card">
+    <div class="badge" id="badge">🏗️ チームビルディング</div>
+    <div class="hidden-state">
+      <div class="hidden-icon">🎴</div>
+      <div class="hidden-hint">カードをめくってお題を見る</div>
+    </div>
+    <p class="topic-text" id="topicText"></p>
+  </div>
+
+  <div class="timer-wrap" id="timerWrap">
+    <div class="timer-row">
+      <span class="timer-status" id="timerStatus">⏱ スピーチ中</span>
+      <span class="timer-display" id="timerDisplay">02:00</span>
+    </div>
+    <div class="timer-bar-bg">
+      <div class="timer-bar" id="timerBar"></div>
+    </div>
+    <div class="timer-btns">
+      <button class="timer-btn" id="btnPause">⏸ 一時停止</button>
+      <button class="timer-btn" id="btnReset">🔁 リセット</button>
+    </div>
+  </div>
+
+  <div class="btn-area" id="btnArea">
+    <button class="btn-reveal" id="btnReveal">🎴 お題をめくる</button>
+    <button class="btn-next" id="btnNext">次のお題へ →</button>
+  </div>
+
+  <div class="legend" id="legend"></div>
+</div>
+
+<script>
+const TOPICS = [
+  { text: "あなたのチームで「これがあってよかった！」というチームの習慣や儀式は何ですか？", category: "チームビルディング", emoji: "🏗️" },
+  { text: "チームに新しいメンバーが入ったとき、最初の1週間でやっておくべきことは何だと思いますか？", category: "チームビルディング", emoji: "🏗️" },
+  { text: "チームの心理的安全性を高めるために、あなたが実際にやってみたことを教えてください。", category: "チームビルディング", emoji: "🏗️" },
+  { text: "リモートとオフィスが混在するチームで、チームの一体感を保つためにどんな工夫をしていますか？", category: "チームビルディング", emoji: "🏗️" },
+  { text: "あなたが「このチームは強い！」と感じた瞬間はどんな時でしたか？", category: "チームビルディング", emoji: "🏗️" },
+  { text: "チームで意見が対立したとき、どうやって前に進みましたか？", category: "チームワーク", emoji: "🤝" },
+  { text: "チームのコミュニケーションが劇的に改善されたきっかけや出来事はありましたか？", category: "チームワーク", emoji: "🤝" },
+  { text: "「ふりかえり」で出たアクションアイテムが本当に変化につながった体験を教えてください。", category: "チームワーク", emoji: "🤝" },
+  { text: "チームで一番盛り上がった（良い意味で）ふりかえりのアクティビティは何でしたか？", category: "チームワーク", emoji: "🤝" },
+  { text: "チームメンバーから受けた、嬉しかったフィードバックを教えてください。", category: "チームワーク", emoji: "🤝" },
+  { text: "失敗から学んだことをチームで共有した経験はありますか？", category: "チームワーク", emoji: "🤝" },
+  { text: "ユーザーインタビューで「まさかそんな使い方をしているとは！」と驚いた体験を教えてください。", category: "ユーザーインタビュー", emoji: "🎙️" },
+  { text: "ユーザーが「言っていること」と「やっていること」が全然違った経験はありますか？", category: "ユーザーインタビュー", emoji: "🎙️" },
+  { text: "ユーザーインタビューで一番難しいと感じること、そして乗り越え方を教えてください。", category: "ユーザーインタビュー", emoji: "🎙️" },
+  { text: "インタビューせずに仮定で進めてしまって、後悔した経験はありますか？", category: "ユーザーインタビュー", emoji: "🎙️" },
+  { text: "開発チームにユーザーの声を届けるために、どんな工夫をしていますか？", category: "ユーザーインタビュー", emoji: "🎙️" },
+  { text: "「As a user, I want to...」の形式で書いた中で、一番チームの議論が盛り上がったストーリーは何でしたか？", category: "ユーザーストーリー", emoji: "📖" },
+  { text: "ユーザーストーリーが大きすぎてスプリントに収まらず、困った経験を教えてください。", category: "ユーザーストーリー", emoji: "📖" },
+  { text: "受け入れ条件（Acceptance Criteria）をチームで決めるとき、どんな観点を大切にしていますか？", category: "ユーザーストーリー", emoji: "📖" },
+  { text: "ユーザーストーリーの「ユーザー」が誰なのか、チームで揉めた経験はありますか？", category: "ユーザーストーリー", emoji: "📖" },
+  { text: "ストーリーポイントの見積もりが全然合わなかったとき、チームはどう対処しましたか？", category: "ユーザーストーリー", emoji: "📖" },
+  { text: "スプリントゴールを達成できなかったとき、チームはどう反応しましたか？", category: "スクラム", emoji: "🔄" },
+  { text: "スクラムのイベントの中で「これは本当に意味があった」と感じるものはどれですか？", category: "スクラム", emoji: "🔄" },
+  { text: "「アジャイルっぽくない」と感じる瞬間はどんなときですか？", category: "スクラム", emoji: "🔄" },
+  { text: "スクラムを導入してから、チームで一番変わったことは何ですか？", category: "スクラム", emoji: "🔄" },
+];
+
+const CATEGORIES = {
+  "チームビルディング": { accent: "#4fc3f7", glow: "#4fc3f722", border: "#4fc3f760", light: "#4fc3f714", bg: "#1a3a5c" },
+  "チームワーク":       { accent: "#69f0ae", glow: "#69f0ae22", border: "#69f0ae60", light: "#69f0ae14", bg: "#1a4a3a" },
+  "ユーザーインタビュー": { accent: "#ce93d8", glow: "#ce93d822", border: "#ce93d860", light: "#ce93d814", bg: "#3a1a4a" },
+  "ユーザーストーリー": { accent: "#ffcc02", glow: "#ffcc0222", border: "#ffcc0260", light: "#ffcc0214", bg: "#4a3a1a" },
+  "スクラム":           { accent: "#ff8a65", glow: "#ff8a6522", border: "#ff8a6560", light: "#ff8a6514", bg: "#3a1a1a" },
+};
+
+const EMOJIS = { "チームビルディング": "🏗️", "チームワーク": "🤝", "ユーザーインタビュー": "🎙️", "ユーザーストーリー": "📖", "スクラム": "🔄" };
+
+// Shuffle
+let deck = [...TOPICS].sort(() => Math.random() - 0.5);
+let idx = 0;
+let revealed = false;
+let elapsed = 0;
+let running = false;
+let timerInterval = null;
+
+const card = document.getElementById('card');
+const badge = document.getElementById('badge');
+const topicText = document.getElementById('topicText');
+const counter = document.getElementById('counter');
+const glow = document.getElementById('glow');
+const timerWrap = document.getElementById('timerWrap');
+const timerDisplay = document.getElementById('timerDisplay');
+const timerBar = document.getElementById('timerBar');
+const timerStatus = document.getElementById('timerStatus');
+const btnArea = document.getElementById('btnArea');
+const btnReveal = document.getElementById('btnReveal');
+const btnNext = document.getElementById('btnNext');
+const btnPause = document.getElementById('btnPause');
+const btnReset = document.getElementById('btnReset');
+
+function fmt(s) {
+  const r = Math.max(0, 120 - s);
+  return String(Math.floor(r / 60)).padStart(2,'0') + ':' + String(r % 60).padStart(2,'0');
+}
+
+function applyTheme(category) {
+  const c = CATEGORIES[category];
+  document.documentElement.style.setProperty('--accent', c.accent);
+  document.documentElement.style.setProperty('--accent-glow', c.glow);
+  document.documentElement.style.setProperty('--accent-border', c.border);
+  document.documentElement.style.setProperty('--accent-light', c.light);
+  glow.style.background = `radial-gradient(circle, ${c.glow} 0%, transparent 70%)`;
+  timerDisplay.style.color = c.accent;
+  timerBar.style.background = c.accent;
+}
+
+function render() {
+  const topic = deck[idx % deck.length];
+  const c = CATEGORIES[topic.category];
+  counter.textContent = `${(idx % deck.length) + 1} / ${deck.length}`;
+  badge.textContent = `${topic.emoji} ${topic.category}`;
+  topicText.textContent = topic.text;
+  applyTheme(topic.category);
+
+  if (revealed) {
+    card.classList.add('revealed');
+    card.style.background = c.bg;
+    card.style.borderColor = c.border;
+    timerWrap.classList.add('visible');
+    btnArea.classList.add('revealed-btns');
+  } else {
+    card.classList.remove('revealed');
+    card.style.background = '#161620';
+    card.style.borderColor = '#2a2a35';
+    timerWrap.classList.remove('visible');
+    btnArea.classList.remove('revealed-btns');
+  }
+}
+
+function updateTimer() {
+  const remaining = Math.max(0, 120 - elapsed);
+  const pct = Math.min(100, (elapsed / 120) * 100);
+  timerDisplay.textContent = fmt(elapsed);
+  timerBar.style.width = `${100 - pct}%`;
+  if (remaining < 30) timerDisplay.style.color = '#ff6b6b';
+  else if (remaining < 60) timerDisplay.style.color = '#ffcc02';
+  else timerDisplay.style.color = CATEGORIES[deck[idx % deck.length].category].accent;
+  timerStatus.textContent = running ? '⏱ スピーチ中' : '⏸ 一時停止';
+  btnPause.textContent = running ? '⏸ 一時停止' : '▶ 再開';
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  running = true;
+  timerInterval = setInterval(() => {
+    elapsed++;
+    updateTimer();
+    if (elapsed >= 120) { clearInterval(timerInterval); running = false; updateTimer(); }
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  running = false;
+  updateTimer();
+}
+
+// Build legend
+const legendEl = document.getElementById('legend');
+Object.entries(CATEGORIES).forEach(([cat, c]) => {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  item.style.border = `1px solid ${c.accent}40`;
+  item.innerHTML = `<div class="dot" style="background:${c.accent}"></div><span style="color:${c.accent}">${cat}</span>`;
+  legendEl.appendChild(item);
+});
+
+btnReveal.addEventListener('click', () => {
+  revealed = true;
+  elapsed = 0;
+  render();
+  updateTimer();
+  startTimer();
+});
+
+btnNext.addEventListener('click', () => {
+  stopTimer();
+  card.classList.add('flipping');
+  setTimeout(() => {
+    idx++;
+    revealed = false;
+    elapsed = 0;
+    render();
+    updateTimer();
+    card.classList.remove('flipping');
+  }, 350);
+});
+
+btnPause.addEventListener('click', () => {
+  if (running) stopTimer(); else startTimer();
+});
+
+btnReset.addEventListener('click', () => {
+  elapsed = 0;
+  startTimer();
+  updateTimer();
+});
+
+// Init
+render();
+applyTheme(deck[0].category);
+</script>
+</body>
+</html>
